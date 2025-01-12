@@ -42,6 +42,14 @@ def apply(obj, selection=None, **kwargs):
         obj = [obj]
 
     for o in obj:
-        for i in range(len(o.material_slots)):
-            bpy.ops.object.material_slot_remove({"object": o})
+        # for i in range(len(o.material_slots)):
+        #     bpy.ops.object.material_slot_remove({"object": o})
+        # Ensure we have a valid object and it has material slots
+        if isinstance(o, bpy.types.Object) and o.material_slots:
+            # Set the active object to `o` before removing material slots
+            bpy.context.view_layer.objects.active = o
+            
+            # Iterate through material slots in reverse order to avoid skipping
+            for i in range(len(o.material_slots)-1, -1, -1):
+                bpy.ops.object.material_slot_remove()
     surface.add_material(obj, shader_invisible, selection=selection)
