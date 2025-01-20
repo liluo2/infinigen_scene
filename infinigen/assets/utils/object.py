@@ -196,6 +196,23 @@ def join_objects(obj):
     butil.select_none()
     return obj
 
+def join_objects_scene(obj):
+    butil.select_none()
+    if not isinstance(obj, list):
+        obj = [obj]
+    if len(obj) == 1:
+        return obj[0]
+    bpy.context.view_layer.objects.active = obj[0]
+    butil.select_none()
+    butil.select(obj)
+    bpy.ops.object.join()
+    obj = bpy.context.active_object
+    # obj.location = 0, 0, 0
+    # obj.rotation_euler = 0, 0, 0
+    # obj.scale = 1, 1, 1
+    butil.select_none()
+    return obj
+
 
 def separate_loose(obj):
     select_none()

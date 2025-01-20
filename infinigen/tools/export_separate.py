@@ -16,7 +16,7 @@ import gin
 
 from infinigen.core.util import blender as butil
 from infinigen.assets.utils.save import get_bounding_box_center_size, get_global_bounds, get_rotation
-from infinigen.assets.utils.object import join_objects
+from infinigen.assets.utils.object import join_objects, join_objects_scene
 
 FORMAT_CHOICES = ["fbx", "obj", "usdc", "usda", "stl", "ply"]
 BAKE_TYPES = {
@@ -857,7 +857,7 @@ def export_single_obj(
 @gin.configurable
 def export_curr_scene(
     output_folder: Path,
-    format="usdc",
+    format="obj",
     image_res=1024,
     vertex_colors=False,
     individual_export=False,
@@ -1012,7 +1012,7 @@ def export_curr_scene(
                 scene_list.append(obj)
         
         # Dealing with scene list
-        scene = join_objects(scene_list)
+        scene = join_objects_scene(scene_list)
 
         # save scene
         obj = scene

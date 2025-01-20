@@ -29,7 +29,8 @@ from infinigen.core.util.logging import Timer, create_text_file, save_polycounts
 from infinigen.core.util.math import int_hash
 from infinigen.core.util.organization import Task
 from infinigen.terrain import Terrain
-from infinigen.tools.export import export_scene, triangulate_meshes
+# from infinigen.tools.export import export_scene, triangulate_meshes
+from infinigen.tools.export_separate import export_scene, triangulate_meshes
 
 logger = logging.getLogger(__name__)
 
@@ -194,6 +195,11 @@ def execute_tasks(
     dryrun=False,
     optimize_terrain_diskusage=False,
     point_trajectory_src_frame=1,
+    format="obj",
+    resolution=1024,
+    vertex_colors=False,
+    individual=True,
+    omniverse=False,
 ):
     if input_folder != output_folder:
         if reset_assets:
@@ -216,8 +222,16 @@ def execute_tasks(
 
     if Task.Coarse not in task and task != Task.FineTerrain:
         with Timer("Reading input blendfile"):
-            bpy.ops.wm.open_mainfile(filepath=str(input_folder / "scene.blend"))
-            tag_system.load_tag(path=str(input_folder / "MaskTag.json"))
+            blend_path = str(input_folder / "scene.blend")
+            if not os.path.isfile(blend_path):
+                bpy.ops.wm.save_mainfile(
+                    filepath=str(input_folder / "scene.blend")
+                )
+            bpy.ops.wm.open_mainfile(filepath=blend_path)
+            tag_path = str(input_folder / "MaskTag.json")
+            if not os.path.isfile(tag_path):
+                tag_system.save_tag(path=tag_path)
+            tag_system.load_tag(path=tag_path)
         butil.approve_all_drivers()
 
     if frame_range[1] < frame_range[0]:
@@ -287,18 +301,30 @@ def execute_tasks(
             ) and not os.path.islink(output_folder / mesh):
                 os.symlink(input_folder / mesh, output_folder / mesh)
     if Task.Coarse in task or Task.Populate in task or Task.FineTerrain in task:
-        with Timer("Writing output blendfile"):
-            logging.info(
-                f"Writing output blendfile to {output_folder / output_blend_name}"
+        output_blend = False
+        if output_blend:
+            with Timer("Writing output blendfile"):
+                logging.info(
+                    f"Writing output blendfile to {output_folder / output_blend_name}"
+                )
+                if optimize_terrain_diskusage and task == [Task.FineTerrain]:
+                    os.symlink(
+                        input_folder / output_blend_name, output_folder / output_blend_name
+                    )
+                else:
+                    bpy.ops.wm.save_mainfile(
+                        filepath=str(output_folder / output_blend_name)
+                    )
+        with Timer("Writing output individual assets and scene"):
+            export_scene(
+                input_folder / output_blend_name, 
+                output_folder,
+                format=format,
+                image_res=resolution,
+                vertex_colors=vertex_colors,
+                individual_export=individual,
+                omniverse_export=omniverse,
             )
-            if optimize_terrain_diskusage and task == [Task.FineTerrain]:
-                os.symlink(
-                    input_folder / output_blend_name, output_folder / output_blend_name
-                )
-            else:
-                bpy.ops.wm.save_mainfile(
-                    filepath=str(output_folder / output_blend_name)
-                )
 
         tag_system.save_tag(path=str(output_folder / "MaskTag.json"))
 
